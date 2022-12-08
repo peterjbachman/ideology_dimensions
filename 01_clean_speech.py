@@ -20,8 +20,10 @@ df = pd.read_csv("/Users/peter/Data/floor_speech/hein-daily/speeches_113.txt",
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
 # Gets the speech
-speech_1 = df.loc[6002, "speech"]
+speech_1 = df.loc[6000, "speech"]
 speech_2 = df.loc[6003, "speech"]
+
+len(speech_1.split())
 
 # Remove punctuation, since OCR is not good at identifying periods and commas
 # accurately
@@ -40,7 +42,36 @@ util.pytorch_cos_sim(test_1, test_2).numpy()[0][0]
 
 # I need to fine tune the model I think. But on how much of the data?
 # What is the lower cutoff for sentence length where I decide it's a formality?
+# I'm thinking 30 words here will be a good cutoff.
 
 # Embedding objects are numpy arrays where the dtype is np.float32
 
 np.array([(1, 2), (3, 4)], dtype=np.float32)
+
+# Outline of the loop:
+# - Load in the year
+# - For each line on the year
+# - Strip the periods and commas
+# - Get the embedding and save it in a list with the speechid?
+# - I can then use the speechid to tie each embedding with the respective
+#   legislator.
+
+# I also want to save a new dataset with only the speeches I keep, and their
+# cleaned text just in case.
+
+# cleans dataset so that each of the speeches is longer than 30 words
+above_30 = df[df["speech"].str.split().str.len() > 30]
+
+# Clean out all periods and commas in the text since they are inconsistent.
+above_30["speech_cleaned"] = above_30["speech"].str.replace("\.|,", "")
+
+above_30.shape[0]
+embeddings = []
+embeddings.append([
+    # Congress Session
+    113,
+    # speech id
+    above_30.iloc[0, 0],
+    # embedding for the speech
+    model.encode(above_30.iloc[0, 2])
+])
