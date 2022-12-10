@@ -65,13 +65,16 @@ above_30 = df[df["speech"].str.split().str.len() > 30]
 # Clean out all periods and commas in the text since they are inconsistent.
 above_30["speech_cleaned"] = above_30["speech"].str.replace("\.|,", "")
 
-above_30.shape[0]
 embeddings = []
-embeddings.append([
-    # Congress Session
-    113,
-    # speech id
-    above_30.iloc[0, 0],
-    # embedding for the speech
-    model.encode(above_30.iloc[0, 2])
-])
+
+for i in range(above_30.shape[0]):
+    embeddings.append([
+        # Congress Session
+        113,
+        # speech id
+        above_30.iloc[i, 0],
+        # embedding for the speech
+        model.encode(above_30.iloc[i, 2])
+    ])
+
+embeddings[65004]
