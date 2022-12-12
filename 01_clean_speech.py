@@ -33,6 +33,7 @@ util.pytorch_cos_sim(test_2, dim).numpy()[0][0]
 # I also want to save a new dataset with only the speeches I keep, and their
 # cleaned text just in case.
 
+# This loop takes about 24 hours to run on my machine, so use with caution
 for j in range(82, 103):
     print(f"Starting on Session {j} of Congress")
     if j < 100:
@@ -63,7 +64,7 @@ for j in range(82, 103):
     for i in range(above_30.shape[0]):
         embeddings.append([
             # Congress Session
-            113,
+            j,
             # speech id
             above_30.iloc[i, 0],
             # Similarity to dimension
