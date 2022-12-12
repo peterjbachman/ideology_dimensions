@@ -2,51 +2,25 @@
 This Script cleans the floor speeches and prepares them for word embeddings.
 
 Versions:
-Python - 3.11.0
+Python - 3.10.4
 Pandas - 1.5.2
 """
 import pandas as pd
 import numpy as np
 from sentence_transformers import SentenceTransformer, util
 
-# Load in text
-# Encoding issues are replaced with the hexidecimal form of the word
-df = pd.read_csv("/Users/peter/Data/floor_speech/hein-daily/speeches_113.txt",
-                 sep="|",
-                 encoding="us-ascii",
-                 encoding_errors='backslashreplace')
+df_phil = pd.read_csv("data/universalism_populism_dimension.txt", sep="|")
 
 # Define Model - Here is SBERT
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
-# Gets the speech
-speech_1 = df.loc[6000, "speech"]
-speech_2 = df.loc[6003, "speech"]
-
-len(speech_1.split())
-
-# Remove punctuation, since OCR is not good at identifying periods and commas
-# accurately
-speech_cleaned_1 = speech_1.replace(".", "")
-speech_cleaned_1 = speech_cleaned_1.replace(",", "")
-
-speech_cleaned_2 = speech_2.replace(".", "")
-speech_cleaned_2 = speech_cleaned_2.replace(",", "")
-
-# Convert sentences to sentence-level embeddings
-test_1 = model.encode(speech_cleaned_1)
-test_2 = model.encode(speech_cleaned_2)
+# Create dimension matrix
+dim = sum(
+    model.encode(df_phil["universal"]) -
+    model.encode(df_phil["populist"])) / 10
 
 # Cosine Similarity. Here we go.
-util.pytorch_cos_sim(test_1, test_2).numpy()[0][0]
-
-# I need to fine tune the model I think. But on how much of the data?
-# What is the lower cutoff for sentence length where I decide it's a formality?
-# I'm thinking 30 words here will be a good cutoff.
-
-# Embedding objects are numpy arrays where the dtype is np.float32
-
-np.array([(1, 2), (3, 4)], dtype=np.float32)
+util.pytorch_cos_sim(test_2, dim).numpy()[0][0]
 
 # Outline of the loop:
 # - Load in the year
@@ -59,22 +33,45 @@ np.array([(1, 2), (3, 4)], dtype=np.float32)
 # I also want to save a new dataset with only the speeches I keep, and their
 # cleaned text just in case.
 
-# cleans dataset so that each of the speeches is longer than 30 words
-above_30 = df[df["speech"].str.split().str.len() > 30]
+for j in range(82, 103):
+    print(f"Starting on Session {j} of Congress")
+    if j < 100:
+        text_name = f"/Users/peter/Data/floor_speech/hein-bound/speeches_0{j}.txt"
+    else:
+        text_name = f"/Users/peter/Data/floor_speech/hein-bound/speeches_{j}.txt"
 
-# Clean out all periods and commas in the text since they are inconsistent.
-above_30["speech_cleaned"] = above_30["speech"].str.replace("\.|,", "")
+    # Load in text
+    # Encoding issues are replaced with the hexidecimal form of the word
+    df = pd.read_csv(text_name,
+                     sep="|",
+                     encoding="us-ascii",
+                     encoding_errors='backslashreplace',
+                     on_bad_lines="skip")
 
-embeddings = []
+    # cleans dataset so that each of the speeches is longer than 30 words
+    above_30 = df[df["speech"].str.split().str.len() > 30]
 
-for i in range(above_30.shape[0]):
-    embeddings.append([
-        # Congress Session
-        113,
-        # speech id
-        above_30.iloc[i, 0],
-        # embedding for the speech
-        model.encode(above_30.iloc[i, 2])
-    ])
+    # Clean out all periods and commas in the text since they are inconsistent.
+    above_30["speech_cleaned"] = above_30["speech"].str.replace("\.|,",
+                                                                "",
+                                                                regex=True)
 
-embeddings[65004]
+    print("Starting to find similarities between text")
+    # Find embeddings for floor speeches
+    embeddings = []
+    df_sim = 0
+    for i in range(above_30.shape[0]):
+        embeddings.append([
+            # Congress Session
+            113,
+            # speech id
+            above_30.iloc[i, 0],
+            # Similarity to dimension
+            util.pytorch_cos_sim(model.encode(above_30.iloc[i, 2]),
+                                 dim).numpy()[0][0]
+        ])
+    df_sim = pd.DataFrame(embeddings,
+                          columns=["session", "speech_id", "similarity"])
+
+    print("Saving as .csv")
+    df_sim.to_csv(f"data/session_{j}_sim.csv")
