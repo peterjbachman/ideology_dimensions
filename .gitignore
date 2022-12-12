@@ -178,3 +178,4 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 .DS_Store
+00_generate_dimension.py
