@@ -18,25 +18,30 @@ test <- df[party == "D", .(count = .N, mean_sim = mean_sim, session = session),
 ]
 df_test <- test[count > 19]
 
+# Plots of some specific legislators that show up more than 19 times.
 ggplot(data = df_test, aes(x = session, y = mean_sim, color = name)) +
   geom_line() +
-  theme_minimal()
+  theme_linedraw()
 
-
+# Plots grouped by Party
 df_grouped_party <- df[party %in% c("D", "R"),
   .(mean_sim = mean(mean_sim)),
   by = .(session, party)
 ]
-df_grouped_party
 
 ggplot(data = df_grouped_party, aes(x = session, y = mean_sim, color = party)) +
-  geom_line()
+  geom_line() +
+  theme_linedraw()
 
+# Plots grouped by chamber in Democratic Party
 df_grouped_chamber <- df[party == "D",
   .(mean_sim = mean(mean_sim)),
   by = .(session, chamber)
 ]
-df_grouped_chamber
 
-ggplot(data = df_grouped_chamber, aes(x = session, y = mean_sim, color = chamber)) +
-  geom_line()
+ggplot(
+  data = df_grouped_chamber,
+  aes(x = session, y = mean_sim, color = chamber)
+) +
+  geom_line() +
+  theme_linedraw()
